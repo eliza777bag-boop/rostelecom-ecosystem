@@ -1,15 +1,12 @@
-/* ===================== МОДУЛЬ 1 · РАДАР ПРИСУТСТВИЯ ===================== */
 (function () {
   'use strict';
 
-  // ---------- Справочники ----------
   const INDUSTRIES = ['ТЭК', 'Торговля', 'Логистика', 'АПК', 'Промышленность', 'Услуги'];
   const COLORS = { active: '#7b2cbf', potential: '#ff6b00', unknown: '#8e86a3', mismatch: '#ff2d55' };
-  const CENTER = [47.6, 40.6];           // Ростовская область
-  const SPOT_MIN = 5;                    // мин. число компаний в зоне для «белого пятна»
+  const CENTER = [47.6, 40.6];          
+  const SPOT_MIN = 5;                    
 
-  // Код налоговой (цифры 3–4 ИНН, регион 61) → зона постановки на учёт.
-  // Зона = городской округ или «райцентр + его район»: так межрайонные ИФНС не дают ложных расхождений.
+
   const IFNS = {
     '01': 'Азов', '02': 'Аксай', '03': 'Багаевская', '04': 'Боковская', '05': 'Казанская', '06': 'Веселый',
     '07': 'Романовская', '08': 'Дубовское', '09': 'Егорлыкская', '10': 'Заветное', '11': 'Зерноград',
@@ -27,15 +24,13 @@
     '65': 'Ростов-на-Дону', '66': 'Ростов-на-Дону', '67': 'Ростов-на-Дону', '68': 'Ростов-на-Дону', '69': 'Ростов-на-Дону'
   };
 
-  // ---------- Данные ----------
-  // Компании загружаются из data/radar_data.csv (см. js/data.js) или из файла, выбранного вручную.
-  // Значения, которых нет в источнике (статус, выручка, динамика), остаются null = «нет данных».
+ 
   const DATA = window.APP_DATA || {};
   const ZONES = DATA.ZONES || {};
   const zoneName = z => ZONES[z] || z || '—';
   let all = [], excluded = [], companies = [], sourceLabel = '', skippedRows = 0;
 
-  /** Задачка со *: расхождение места регистрации и места ведения бизнеса. */
+
   function checkMismatch(c) {
     const inn = String(c.inn || '').trim();
     const reasons = [];
@@ -51,12 +46,12 @@
     return reasons;
   }
 
-  /** Принимает массив компаний (из CSV) и пересчитывает всё. */
+
   function setCompanies(list, label, skipped = 0) {
     all = list;
     sourceLabel = label;
     skippedRows = skipped;
-    // Ликвидированные (есть дата исключения из реестра) — исключаем из всех расчётов и с карты
+  
     excluded = all.filter(c => c.excluded);
     companies = all.filter(c => !c.excluded).map(c => {
       const reasons = checkMismatch(c);
@@ -66,7 +61,7 @@
     render();
   }
 
-  // ---------- DOM ----------
+
   const $ = id => document.getElementById(id);
   const panel = $('panel-1');
   if (!panel || !$('m1-map')) return;
@@ -74,7 +69,7 @@
   $('m1-ind').innerHTML = INDUSTRIES.map(i =>
     `<label class="m1-chip"><input type="checkbox" name="m1-ind" value="${i}" checked><span>${i}</span></label>`).join('');
 
-  /** Примечание под фильтрами: откуда данные и каких полей в них нет. */
+
   function updateNote() {
     if (!all.length) {
       $('m1-note').textContent = 'Данные не загружены.';
@@ -97,7 +92,7 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const toast = msg => (typeof window.showToast === 'function' ? window.showToast(msg) : console.info(msg));
 
-  // ---------- Фильтры ----------
+
   function getFilters() {
     const checked = name => [...panel.querySelectorAll(`input[name="${name}"]:checked`)].map(i => i.value);
     return {
@@ -109,8 +104,6 @@
     };
   }
 
-  // Фильтры по выручке/динамике: если выбран диапазон, компании без данных НЕ попадают в него
-  // (мы не знаем их значение). При «Любая» — показываются все, включая «нет данных».
   function inRevenue(v, range) {
     if (range === 'all') return true;
     if (range === 'unknown') return !isNum(v);
@@ -134,7 +127,7 @@
       inRevenue(c.revenue, f.rev) && inDynamics(c.growth, f.dyn) &&
       (!f.mismatch || c.mismatch));
   }
-  // ---------- Карта ----------
+
   let map, markersLayer, heatLayer, spotsLayer, filtered = [];
 
   function initMap() {
@@ -145,12 +138,9 @@
     }
     map = L.map('m1-map', { center: CENTER, zoom: 7, minZoom: 6, maxZoom: 18, preferCanvas: true, zoomControl: true });
 
-    // ПОДЛОЖКИ. Основная — Esri «World Dark Gray»: бесплатная, без API-ключа.
-    // CartoDB Dark Matter оставлен в переключателе: без ключа он может рисовать водяной знак
-    // «API KEY REQUIRED» (сервер отвечает HTTP 200, поэтому tileerror не срабатывает).
     const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
     const esriAttr = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> — Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
-    map.createPane('m1-labels');                       // подписи городов поверх тепловой карты
+    map.createPane('m1-labels');                     
     map.getPane('m1-labels').style.zIndex = 450;
     map.getPane('m1-labels').style.pointerEvents = 'none';
     const esriBase = L.tileLayer(ESRI + 'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
@@ -165,7 +155,7 @@
       subdomains: 'abcd', maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
     });
-    // Резерв: OSM, затемнённый CSS-фильтром
+   
     const osmDark = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19, className: 'm1-tiles-dark',
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -176,7 +166,7 @@
       'OpenStreetMap (тёмная)': osmDark
     }, null, { position: 'topright' }).addTo(map);
 
-    // Автопереход на резерв, если тайлы Esri массово не грузятся
+   
     let tileErrors = 0;
     esriBase.on('tileerror', () => {
       if (++tileErrors === 6 && map.hasLayer(esriDark)) {
@@ -253,8 +243,7 @@
         .addTo(markersLayer);
     });
     if (heatLayer) {
-      // Вес точки растёт с выручкой (лог-шкала), чтобы крупный бизнес был заметнее.
-      // Если выручка неизвестна — базовый вес 0,3 (точка = плотность бизнеса, без выдуманной выручки).
+      
       heatLayer.setLatLngs(filtered.map(c => [c.lat, c.lng,
         isNum(c.revenue) ? Math.min(1, 0.3 + Math.log10(1 + Math.max(0, c.revenue)) / 3) : 0.3]));
     }
@@ -269,10 +258,7 @@
     show(markersLayer, $('m1-layer-markers').checked);
     show(heatLayer, $('m1-layer-heat').checked);
   }
-  // ---------- Белые пятна ----------
-  // Зона (город/район) с высокой плотностью бизнеса, где нет ни одного действующего клиента.
-  // Статус-фильтр не учитываем: чтобы увидеть «отсутствие присутствия», нужны и действующие, и потенциальные.
-  // Если статусов клиентов нет совсем, «белые пятна» посчитать честно нельзя — показываем подсказку.
+
   function findWhiteSpots() {
     const f = getFilters();
     f.status = new Set(['active', 'potential', 'unknown']);
@@ -308,7 +294,6 @@
     box.hidden = false;
 
     if (knownStatus === 0) {
-      // Без статусов показываем только плотность: топ зон по числу компаний (это реальные данные реестра)
       const dense = stats.filter(z => z.n >= SPOT_MIN).sort((a, b) => b.n - a.n).slice(0, 5);
       box.innerHTML = `<h4>Нет данных о статусе клиентов</h4>
         Чтобы найти белые пятна (зоны без действующих клиентов), загрузите CSV с колонкой <b>status</b>
@@ -358,7 +343,7 @@
     map.flyToBounds(L.latLngBounds(spots.map(z => [z.lat, z.lng])).pad(0.3), { duration: 0.8, maxZoom: 9 });
   }
 
-  // ---------- Экспорт CSV ----------
+
   function exportCsv() {
     if (!filtered.length) { toast('Нет данных для экспорта — измените фильтры'); return; }
     const head = ['Наименование', 'ИНН', 'Категория', 'Отрасль', 'ОКВЭД', 'Адрес ведения бизнеса', 'Зона',
@@ -367,7 +352,7 @@
       const s = String(v ?? '');
       return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    // десятичная запятая для Excel (RU); неизвестное значение — пустая ячейка
+
     const num = v => (isNum(v) ? String(v).replace('.', ',') : '');
     const ST = { active: 'Действующий', potential: 'Потенциальный', unknown: '' };
     const lines = filtered.map(c => [
@@ -375,7 +360,7 @@
       ST[statusKey(c)], num(c.revenue), num(c.growth),
       c.mismatch ? 'Да' : 'Нет', c.reasons.join(' | '), num(c.lat), num(c.lng)
     ].map(cell).join(';'));
-    // BOM + «;» — чтобы Excel сразу открыл кириллицу и разбил по столбцам
+  
     const blob = new Blob(['\uFEFF' + [head.join(';'), ...lines].join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = Object.assign(document.createElement('a'), {
@@ -386,7 +371,6 @@
     toast(`Выгружено компаний: ${filtered.length}`);
   }
 
-  // ---------- События ----------
   panel.querySelectorAll('.m1-side input[name], #m1-rev, #m1-dyn, #m1-mismatch')
     .forEach(el => el.addEventListener('change', render));
   $('m1-layer-markers').addEventListener('change', toggleLayers);
@@ -400,9 +384,7 @@
     if (map) map.flyTo(CENTER, 7, { duration: 0.6 });
   });
 
-  // ---------- Активация вкладки ----------
-  // Leaflet в скрытом контейнере считает размер 0×0 и «сереет». Поэтому карту создаём при первом
-  // показе вкладки, а при каждом следующем — вызываем map.invalidateSize().
+
   function onPanelShown() {
     if (panel.hidden) return;
     requestAnimationFrame(() => {
@@ -413,14 +395,13 @@
   new MutationObserver(onPanelShown).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
   const tab = $('tab-1');
   if (tab) tab.addEventListener('click', () => {
-    if (map) map.invalidateSize();   // мгновенно
-    setTimeout(onPanelShown, 0);     // и после применения display
+    if (map) map.invalidateSize();  
+    setTimeout(onPanelShown, 0);    
   });
-  onPanelShown();      // если вкладка открыта сразу при загрузке
-  render();            // счётчики до инициализации карты (пока 0)
+  onPanelShown();      
+  render();           
 
-  // ---------- Загрузка данных ----------
-  /** Сообщение над картой: что с данными и что делать (пустая строка — скрыть). */
+  
   function setDataStatus(html, isError) {
     const box = $('m1-data-status');
     box.hidden = !html;
@@ -428,7 +409,7 @@
     box.innerHTML = html || '';
   }
 
-  /** Автозагрузка data/radar_data.csv. Работает через локальный сервер и на GitHub Pages. */
+  
   async function loadDefault() {
     if (!DATA.loadRadarCsv) { setDataStatus('Не подключён js/data.js', true); return; }
     setDataStatus('Загружаем данные…');
@@ -450,7 +431,7 @@
     }
   }
 
-  /** Ручная загрузка: пользователь выбирает CSV на своём компьютере. Файл никуда не отправляется. */
+ 
   $('m1-file').addEventListener('change', async e => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -468,7 +449,7 @@
 
   loadDefault();
 
-  // Для отладки из консоли: RADAR.companies, RADAR.checkMismatch(...)
+
   window.RADAR = {
     get companies() { return companies; }, get excluded() { return excluded; },
     checkMismatch, findWhiteSpots, setCompanies, loadDefault, get map() { return map; }
