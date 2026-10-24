@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Экосистема коммерческого блока · Ростелеком</title>
+<!-- Внешние библиотеки (CDN, нужен интернет): Leaflet 1.9.4 + Leaflet.heat 0.2.0 — карта Модуля 1 -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<!-- Стили приложения -->
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">РТ</div>
+      <div>
+        <h1>Экосистема коммерческого блока</h1>
+        <p>Ростелеком · Хакатон 2026</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="badge">Демо-версия</span>
+      <!-- Показывается только при работе через сервер с входом (см. js/auth.js) -->
+      <div class="auth-box" id="auth-box" hidden>
+        <span class="auth-user" title="Вы вошли как"><span id="auth-user"></span></span>
+        <button type="button" class="auth-logout" id="auth-logout">Выйти</button>
+      </div>
+    </div>
+  </div>
+  <nav role="tablist" aria-label="Модули экосистемы">
+    <button class="tab" role="tab" id="tab-1" aria-controls="panel-1" aria-selected="false" tabindex="-1">Модуль 1: Радар присутствия</button>
+    <button class="tab" role="tab" id="tab-2" aria-controls="panel-2" aria-selected="false" tabindex="-1">Модуль 2: Инвестиционный навигатор</button>
+    <button class="tab" role="tab" id="tab-3" aria-controls="panel-3" aria-selected="true" tabindex="0">Модуль 3: Калькулятор сделок</button>
+  </nav>
+</header>
+
+<main>
+  <section class="panel" id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden>
+    <div class="panel-head">
+      <h2>Радар присутствия</h2>
+      <p>Плотность бизнеса Ростовской области по отраслям, выручке и динамике · реестр МСП</p>
+    </div>
+
+    <div class="m1">
+      <!-- ===== Светлая панель фильтров ===== -->
+      <aside class="m1-side" aria-label="Фильтры радара">
+        <h3>Фильтры</h3>
+
+        <fieldset class="m1-group">
+          <legend>Отрасль</legend>
+          <div class="m1-chips" id="m1-ind"></div>
+        </fieldset>
+
+        <fieldset class="m1-group">
+          <legend>Статус клиента</legend>
+          <div class="m1-chips">
+            <label class="m1-chip"><input type="checkbox" name="m1-status" value="active" checked><span><i class="m1-dot active"></i>Действующие</span></label>
+            <label class="m1-chip"><input type="checkbox" name="m1-status" value="potential" checked><span><i class="m1-dot potential"></i>Потенциальные</span></label>
+            <label class="m1-chip"><input type="checkbox" name="m1-status" value="unknown" checked><span><i class="m1-dot unknown"></i>Нет данных</span></label>
+          </div>
+        </fieldset>
+
+        <div>
+          <label class="m1-label" for="m1-rev">Выручка, млн ₽</label>
+          <select id="m1-rev">
+            <option value="all">Любая</option>
+            <option value="0-10">до 10</option>
+            <option value="10-50">10 – 50</option>
+            <option value="50-200">50 – 200</option>
+            <option value="200-">более 200</option>
+            <option value="unknown">Нет данных</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="m1-label" for="m1-dyn">Динамика роста выручки</label>
+          <select id="m1-dyn">
+            <option value="all">Любая</option>
+            <option value="fast">Быстрый рост (&gt; 15%)</option>
+            <option value="grow">Рост (0 – 15%)</option>
+            <option value="fall">Снижение (&lt; 0%)</option>
+            <option value="unknown">Нет данных</option>
+          </select>
+        </div>
+
+        <label class="m1-check">
+          <input type="checkbox" id="m1-mismatch">
+          <span><b>Только с расхождением адресов (Юр. / Факт.)</b>
+            <small>ИНН не «61» или город регистрации ≠ месту ведения бизнеса</small></span>
+        </label>
+
+        <div>
+          <span class="m1-label">Слои карты</span>
+          <div class="m1-toggles">
+            <label><input type="checkbox" id="m1-layer-markers" checked> Маркеры</label>
+            <label><input type="checkbox" id="m1-layer-heat" checked> Тепловая карта</label>
+          </div>
+        </div>
+
+        <div class="m1-actions">
+          <button type="button" class="m1-btn m1-btn-orange" id="m1-spots">🔍 Найти белые пятна</button>
+          <button type="button" class="m1-btn m1-btn-purple" id="m1-export">⬇ Экспорт в CSV</button>
+          <button type="button" class="m1-btn m1-btn-ghost" id="m1-load">📂 Загрузить CSV</button>
+          <input type="file" id="m1-file" accept=".csv,text/csv" hidden>
+          <button type="button" class="m1-btn m1-btn-ghost" id="m1-reset">Сбросить фильтры</button>
+        </div>
+
+        <div class="m1-insight" id="m1-insight" hidden aria-live="polite"></div>
+
+        <p class="m1-note" id="m1-note"></p>
+      </aside>
+
+      <!-- ===== Тёмный контейнер карты ===== -->
+      <div class="m1-main">
+        <div class="m1-kpis" aria-live="polite">
+          <div class="m1-kpi"><b id="m1-k-total">0</b><span>на карте</span></div>
+          <div class="m1-kpi k-active"><b id="m1-k-active">0</b><span>действующие</span></div>
+          <div class="m1-kpi k-potential"><b id="m1-k-potential">0</b><span>потенциальные</span></div>
+          <div class="m1-kpi k-unknown"><b id="m1-k-unknown">0</b><span>статус: нет данных</span></div>
+          <div class="m1-kpi k-mismatch"><b id="m1-k-mismatch">0</b><span>расхождение адр.</span></div>
+          <div class="m1-kpi k-excluded"><b id="m1-k-excluded">0</b><span>ликвидированы, скрыты</span></div>
+        </div>
+        <div class="m1-map-wrap">
+          <div id="m1-map" role="region" aria-label="Карта Ростовской области с компаниями"></div>
+          <div class="m1-empty" id="m1-empty" hidden>Нет компаний по выбранным фильтрам</div>
+          <div class="m1-data-status" id="m1-data-status" role="status" aria-live="polite" hidden></div>
+          <div class="m1-legend" aria-hidden="true">
+            <div><i class="m1-dot active"></i>Действующий клиент</div>
+            <div><i class="m1-dot potential"></i>Потенциальный</div>
+            <div><i class="m1-dot unknown"></i>Статус неизвестен</div>
+            <div><i class="m1-dot mismatch"></i>Расхождение адресов</div>
+            <div><span class="m1-heatbar"></span>Плотность бизнеса</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden>
+    <div class="panel-head">
+      <h2>Инвестиционный навигатор</h2>
+      <p>Реестр инвестпроектов Ростовской области · таймлайн ввода в эксплуатацию · потенциал ИТ-рынка Ростелекома</p>
+    </div>
+
+    <div id="module-2" class="inv">
+      <!-- ===== Фильтры ===== -->
+      <div class="inv-glass inv-filters" aria-label="Фильтры инвестпроектов">
+        <div class="inv-search">
+          <label for="inv-q" class="inv-sr">Поиск по названию или инвестору</label>
+          <span class="inv-search-ico" aria-hidden="true">⌕</span>
+          <input type="search" id="inv-q" placeholder="Поиск по названию проекта или инвестору…" autocomplete="off">
+        </div>
+
+        <div class="inv-frow">
+          <span class="inv-flabel" id="inv-l-stage">Стадия</span>
+          <div class="inv-chips" id="inv-stage" role="radiogroup" aria-labelledby="inv-l-stage"></div>
+        </div>
+        <div class="inv-frow">
+          <span class="inv-flabel" id="inv-l-ind">Отрасль</span>
+          <div class="inv-chips" id="inv-ind" role="radiogroup" aria-labelledby="inv-l-ind"></div>
+        </div>
+        <div class="inv-frow">
+          <span class="inv-flabel" id="inv-l-need">Потребность ИТ</span>
+          <div class="inv-chips" id="inv-need" role="group" aria-labelledby="inv-l-need"></div>
+        </div>
+
+        <div class="inv-frow inv-frow-last">
+          <label class="inv-toggle">
+            <input type="checkbox" id="inv-big">
+            <span class="inv-switch" aria-hidden="true"></span>
+            <span>Крупные инвестпроекты (&gt; 250 млн ₽)</span>
+          </label>
+          <div class="inv-actions">
+            <button type="button" class="inv-btn inv-btn-ghost" id="inv-reset">Сбросить</button>
+            <button type="button" class="inv-btn inv-btn-orange" id="inv-sub">🔔 Подписаться на новые тендеры по отрасли</button>
+            <button type="button" class="inv-btn inv-btn-purple" id="inv-csv">⬇ Экспорт реестра в CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== KPI ===== -->
+      <div class="inv-kpis" aria-live="polite">
+        <div class="inv-glass inv-kpi"><span>Проектов в выборке</span><b id="inv-k-count">0</b><small id="inv-k-count-sub">из 0 в реестре</small></div>
+        <div class="inv-glass inv-kpi"><span>Объём инвестиций</span><b id="inv-k-sum">0</b><small>млн ₽ · сумма по выборке</small></div>
+        <div class="inv-glass inv-kpi inv-kpi-accent"><span>Потенциал ИТ/связи Ростелекома</span><b id="inv-k-it">0</b><small>млн ₽ · оценка 3–5% бюджета</small></div>
+        <div class="inv-glass inv-kpi"><span>Новых рабочих мест</span><b id="inv-k-jobs">0</b><small>по данным реестра</small></div>
+      </div>
+
+      <!-- ===== Таймлайн ===== -->
+      <div class="inv-glass inv-tl-wrap">
+        <div class="inv-tl-head">
+          <h3>Таймлайн ввода в эксплуатацию</h3>
+          <div class="inv-legend" aria-hidden="true">
+            <span><i class="inv-b inv-b-stage"></i>Стадия</span>
+            <span><i class="inv-b inv-b-ind"></i>Отрасль</span>
+            <span><i class="inv-b inv-b-bud"></i>Бюджет</span>
+          </div>
+        </div>
+        <div class="inv-tl" id="inv-tl"></div>
+        <p class="inv-empty" id="inv-empty" hidden>Под выбранные фильтры проектов нет. Ослабьте условия или нажмите «Сбросить».</p>
+      </div>
+
+      <p class="inv-note">Источник: Khakaton_2026_faktura.xlsx, лист «МОД2_Таб1» (63 проекта): муниципалитет, куратор, инициатор, суть, сроки, бюджет, рабочие места.
+        Стадия, отрасль и ИТ-потребности в реестре отсутствуют — для 8 проектов заданы по ТЗ, для остальных выведены автоматически (сроки относительно 2026 г. и ключевые слова в названии).
+        Потенциал ИТ — экспертная оценка 3–5% от бюджета.</p>
+    </div>
+
+    <!-- ===== Модальное окно ===== -->
+    <div class="inv-modal" id="inv-modal" hidden>
+      <div class="inv-modal-bg" data-close></div>
+      <div class="inv-modal-box" role="dialog" aria-modal="true" aria-labelledby="inv-m-title" tabindex="-1">
+        <button type="button" class="inv-modal-x" data-close aria-label="Закрыть">✕</button>
+        <div id="inv-m-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-3" role="tabpanel" aria-labelledby="tab-3">
+    <div class="panel-head">
+      <h2>Калькулятор сделок</h2>
+      <p>Расчёт стоимости коммерческого предложения с учётом региона, масштаба и дополнительных работ</p>
+    </div>
+
+    <div class="calc-grid">
+      <form class="card" id="calc-form" novalidate>
+        <h3><span class="step">1</span>Оборудование / ПО</h3>
+        <div class="row-2">
+          <div class="field">
+            <label for="equipment">Позиция</label>
+            <select id="equipment" required>
+              <option value="8500">Смарт-счётчик 3-фазный — 8 500 ₽</option>
+              <option value="12000">Датчик качества электроэнергии — 12 000 ₽</option>
+              <option value="22000">Тепловычислитель (узел учёта) — 22 000 ₽</option>
+              <option value="1800">Датчик температуры погружной — 1 800 ₽</option>
+              <option value="15000">Шлюз передачи данных LoRaWAN/NB-IoT — 15 000 ₽</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="qty">Количество, шт.</label>
+            <input type="number" id="qty" min="1" max="100000" step="1" value="1" inputmode="numeric" aria-describedby="qty-hint">
+            <p class="hint" id="qty-hint">От 1 до 100 000</p>
+          </div>
+        </div>
+
+        <h3><span class="step">2</span>Регион проекта</h3>
+        <fieldset>
+          <legend class="legend">Федеральный округ</legend>
+          <div class="segments">
+            <label class="segment"><input type="radio" name="region" value="1.0" data-name="Центральный ФО" checked><span>Центральный ФО<small>× 1,00</small></span></label>
+            <label class="segment"><input type="radio" name="region" value="1.05" data-name="Северо-Западный ФО"><span>Северо-Западный ФО<small>× 1,05</small></span></label>
+            <label class="segment"><input type="radio" name="region" value="1.10" data-name="Южный ФО"><span>Южный ФО<small>× 1,10</small></span></label>
+          </div>
+        </fieldset>
+
+        <h3><span class="step">3</span>Уровень сложности / масштаба</h3>
+        <fieldset>
+          <legend class="legend">Уровень</legend>
+          <div class="segments">
+            <label class="segment"><input type="radio" name="level" value="1.0" data-name="Базовый" checked><span>Базовый<small>× 1,0</small></span></label>
+            <label class="segment"><input type="radio" name="level" value="1.3" data-name="Продвинутый"><span>Продвинутый<small>× 1,3</small></span></label>
+            <label class="segment"><input type="radio" name="level" value="1.6" data-name="Экспертный"><span>Экспертный<small>× 1,6</small></span></label>
+          </div>
+        </fieldset>
+
+        <h3><span class="step">4</span>Дополнительные этапы работ</h3>
+        <div class="extras">
+          <label class="extra"><input type="checkbox" name="extra" value="0.10" data-name="ПИР"><span class="name"><b>ПИР</b><em>Проектно-изыскательские работы</em></span><span class="pct">+10%</span></label>
+          <label class="extra"><input type="checkbox" name="extra" value="0.15" data-name="ПНР"><span class="name"><b>ПНР</b><em>Пусконаладочные работы</em></span><span class="pct">+15%</span></label>
+          <label class="extra"><input type="checkbox" name="extra" value="0.05" data-name="Шеф-монтаж"><span class="name"><b>Шеф-монтаж</b><em>Контроль монтажа специалистом</em></span><span class="pct">+5%</span></label>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top:20px">Рассчитать стоимость</button>
+      </form>
+
+      <aside class="card result" aria-live="polite" id="result">
+        <h3>Итог по КП</h3>
+        <div class="empty" id="result-empty">
+          <div class="ico" aria-hidden="true">🧮</div>
+          Заполните параметры и нажмите «Рассчитать стоимость»
+        </div>
+        <div id="result-body" hidden></div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Скрипты приложения. Обычные <script> (не type="module"): так страница работает
+     и при открытии двойным щелчком, и на GitHub Pages. Порядок важен. -->
+<script src="js/auth.js"></script>         <!-- кнопка «Выйти», реакция на окончание сессии -->
+<script src="js/data.js"></script>         <!-- данные и загрузка CSV -->
+<script src="js/main.js"></script>         <!-- уведомления, навигация по модулям -->
+<script src="js/map.js"></script>          <!-- Модуль 1: Радар присутствия -->
+<script src="js/investments.js"></script>  <!-- Модуль 2: Инвестиционный навигатор -->
+<script src="js/calculator.js"></script>   <!-- Модуль 3: Калькулятор сделок -->
+</body>
+</html>

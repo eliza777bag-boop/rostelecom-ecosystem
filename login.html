@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Вход · Экосистема коммерческого блока · Ростелеком</title>
+<link rel="stylesheet" href="/login.css">
+</head>
+<body>
+<main class="card">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">РТ</div>
+    <div>
+      <h1>Экосистема коммерческого блока</h1>
+      <p>Ростелеком · Хакатон 2026</p>
+    </div>
+  </div>
+
+  <ol class="steps" aria-label="Этапы входа">
+    <li id="step-1-mark" class="is-active">1. Пароль</li>
+    <li id="step-2-mark">2. Код из приложения</li>
+  </ol>
+
+  <!-- Шаг 1: логин и пароль -->
+  <form id="form-password" novalidate>
+    <label for="username">Логин</label>
+    <input id="username" name="username" autocomplete="username" autocapitalize="none"
+           spellcheck="false" required maxlength="100">
+    <label for="password">Пароль</label>
+    <input id="password" name="password" type="password" autocomplete="current-password"
+           required maxlength="1000">
+    <button class="btn" type="submit">Далее</button>
+  </form>
+
+  <!-- Шаг 2: одноразовый код TOTP -->
+  <form id="form-code" novalidate hidden>
+    <p class="hint">Откройте Google Authenticator или Microsoft Authenticator и введите
+      6-значный код для «Экосистема РТ». Код меняется каждые 30 секунд.</p>
+    <label for="code">Одноразовый код</label>
+    <input id="code" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code"
+           maxlength="6" required class="code-input" placeholder="000000">
+    <button class="btn" type="submit">Войти</button>
+    <button class="link" type="button" id="back">← Ввести логин и пароль заново</button>
+  </form>
+
+  <p id="message" class="message" role="alert" aria-live="assertive" hidden></p>
+  <p class="foot">Вход защищён двухфакторной аутентификацией. Проверка пароля и кода выполняется на сервере.</p>
+</main>
+<script src="/login.js"></script>
+</body>
+</html>

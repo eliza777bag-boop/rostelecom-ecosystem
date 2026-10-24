@@ -1,0 +1,109 @@
+/* =====================================================================
+   calculator.js — Модуль 3 «Калькулятор сделок»
+   ---------------------------------------------------------------------
+   Формулы (без изменений относительно исходной версии):
+     база        = цена оборудования × количество
+     минимальная = база × коэф. региона × коэф. уровня
+     доп. этап   = минимальная × % этапа (ПИР 10%, ПНР 15%, шеф-монтаж 5%)
+     оптимальная = минимальная + сумма доп. этапов
+   Коэффициенты и цены — в разметке формы (index.html), источник —
+   Khakaton_2026_faktura.xlsx, листы МОД3_Таб1…Таб4.
+   Кнопка «Скачать КП (.docx)» — демо: файл не создаётся, показывается уведомление.
+   showToast() объявлена в main.js.
+   ===================================================================== */
+const form = document.getElementById('calc-form');
+const resultEmpty = document.getElementById('result-empty');
+const resultBody = document.getElementById('result-body');
+const fmt = n => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n);
+const round2 = n => Math.round(n * 100) / 100;
+
+function calculate({ price, qty, region, level, extras }) {
+  const base = price * qty;
+  const min = round2(base * region * level);
+  const extraLines = extras.map(x => ({ ...x, sum: round2(min * x.pct) }));
+  const optimal = round2(min + extraLines.reduce((s, x) => s + x.sum, 0));
+  return { base, min, extraLines, optimal };
+}
+
+function readForm() {
+  const eq = document.getElementById('equipment');
+  const qtyInput = document.getElementById('qty');
+  const qty = Math.floor(Number(qtyInput.value));
+  if (!Number.isFinite(qty) || qty < 1 || qty > 100000) {
+    qtyInput.setAttribute('aria-invalid', 'true');
+    qtyInput.focus();
+    showToast('Укажите количество от 1 до 100 000');
+    return null;
+  }
+  qtyInput.removeAttribute('aria-invalid');
+  const region = form.querySelector('[name="region"]:checked');
+  const level = form.querySelector('[name="level"]:checked');
+  return {
+    equipmentName: eq.options[eq.selectedIndex].text.split(' — ')[0],
+    price: Number(eq.value),
+    qty,
+    region: Number(region.value), regionName: region.dataset.name,
+    level: Number(level.value), levelName: level.dataset.name,
+    extras: [...form.querySelectorAll('[name="extra"]:checked')]
+      .map(c => ({ name: c.dataset.name, pct: Number(c.value) }))
+  };
+}
+
+let lastQuote = null;
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  const input = readForm();
+  if (!input) return;
+  const r = calculate(input);
+  lastQuote = { input, r, id: 'КП-' + Date.now().toString().slice(-6), date: new Date() };
+  renderResult(lastQuote);
+});
+
+function renderResult({ input, r, id, date }) {
+  const k = n => n.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+  const extrasRows = r.extraLines.length
+    ? r.extraLines.map(x => `<tr><td>${x.name} (+${Math.round(x.pct * 100)}%)</td><td>${fmt(x.sum)}</td></tr>`).join('')
+    : `<tr><td class="muted" colspan="2">Доп. работы не выбраны</td></tr>`;
+
+  resultBody.innerHTML = `
+    <div class="price-box price-min">
+      <div class="label">Минимальная цена</div>
+      <div class="value">${fmt(r.min)}</div>
+      <div class="sub">Без дополнительных работ</div>
+    </div>
+    <div class="price-box price-opt">
+      <div class="label">Оптимальная цена</div>
+      <div class="value">${fmt(r.optimal)}</div>
+      <div class="sub">С учётом выбранных этапов работ</div>
+    </div>
+    <table class="breakdown">
+      <caption>Разбивка стоимости</caption>
+      <tr><td>${input.equipmentName}<br><span class="muted">${fmt(input.price)} × ${input.qty} шт.</span></td><td>${fmt(r.base)}</td></tr>
+      <tr><td>Регион: ${input.regionName}</td><td>× ${k(input.region)}</td></tr>
+      <tr><td>Уровень: ${input.levelName}</td><td>× ${k(input.level)}</td></tr>
+      <tr><td><b>Минимальная цена</b></td><td><b>${fmt(r.min)}</b></td></tr>
+      ${extrasRows}
+      <tr class="total"><td>Итого (оптимальная)</td><td>${fmt(r.optimal)}</td></tr>
+    </table>
+    <button type="button" class="btn btn-outline" id="download-btn">📄 Скачать КП (.docx)</button>
+    <p class="meta">${id} · ${date.toLocaleDateString('ru-RU')} · цены указаны без НДС</p>`;
+
+  resultEmpty.hidden = true;
+  resultBody.hidden = false;
+  resultBody.classList.remove('pop'); void resultBody.offsetWidth; resultBody.classList.add('pop');
+  document.getElementById('download-btn').addEventListener('click', simulateDownload);
+  if (window.innerWidth <= 900) document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+}
+
+function simulateDownload(e) {
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = '⏳ Формируем документ…';
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = '✅ КП сформировано';
+    showToast(`Файл «${lastQuote.id}.docx» сформирован (демо-режим). Сумма: ${fmt(lastQuote.r.optimal)}`);
+    setTimeout(() => { btn.textContent = '📄 Скачать КП (.docx)'; }, 2500);
+  }, 1200);
+}
