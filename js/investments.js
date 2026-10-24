@@ -1,8 +1,3 @@
-/* ===================== МОДУЛЬ 2 · ИНВЕСТИЦИОННЫЙ НАВИГАТОР =====================
-   Фильтры: стадия, отрасль, ИТ-потребности, крупные проекты, поиск (инициатор, муниципалитет, название).
-   Таймлайн по году ввода, карточки, модальное окно, экспорт CSV, подписка (демо),
-   кнопка «Сформировать КП» → Модуль 3 (регион «Южный ФО» + уровень по бюджету).
-   Данные: window.APP_DATA.INV_DATA (js/data.js). */
 (function () {
   'use strict';
   // Реестр инвестпроектов — из js/data.js (встроен в JS, поэтому работает и при открытии двойным щелчком)
@@ -21,7 +16,7 @@
   const INDS = ['ТЭК', 'АПК', 'Логистика и склад', 'Промышленность', 'Услуги и Торговля', 'Девелопмент'];
   const NEEDS = ['ИТ-инфраструктура', 'АСУ ТП', 'Физическая безопасность', 'Информационная безопасность'];
 
-  /* Корзины таймлайна по году ввода в эксплуатацию */
+
   const BUCKETS = [
     { key: '2026', label: '2026', test: y => y <= 2026 },
     { key: '2027', label: '2027', test: y => y === 2027 },
@@ -30,7 +25,6 @@
     { key: '2031', label: '2031+', test: y => y >= 2031 }
   ];
 
-  /* Рекомендуемые решения Ростелекома по ИТ-потребностям */
   const SOLUTIONS = {
     'ИТ-инфраструктура': [
       { ico: '🔗', t: 'Прокладка ВОЛС и выделенный интернет', d: 'Подключение площадки, резервный канал, SLA 99,9%' },
@@ -61,7 +55,6 @@
   const state = { stage: 'all', ind: 'all', needs: new Set(), big: false, q: '' };
   const subs = new Set();
 
-  /* ---------- Фильтры ---------- */
   function chip(label, value, group, count) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -106,7 +99,7 @@
       (!q || p.title.toLowerCase().includes(q) || p.inv.toLowerCase().includes(q) || p.mun.toLowerCase().includes(q))
     );
   }
-  /* ---------- Рендер ---------- */
+
   const shortName = s => s.length > 60 ? s.slice(0, 58) + '…' : s;
   function card(p) {
     return `<button type="button" class="inv-card" data-id="${p.id}" aria-haspopup="dialog">
@@ -148,7 +141,6 @@
     }).join('');
   }
 
-  /* ---------- Модальное окно ---------- */
   let lastFocus = null, current = null;
   function solutionsFor(p) {
     const out = [];
@@ -196,7 +188,6 @@
     if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
   }
 
-  /* Переход в Модуль 3: регион «Южный ФО», уровень — по бюджету и АСУ ТП */
   function toCalculator(p) {
     closeModal();
     const level = p.budget >= 1000 || p.needs.includes('АСУ ТП') && p.budget >= 250 ? '1.6' : p.budget >= 100 ? '1.3' : '1.0';
@@ -210,7 +201,6 @@
     toast(`КП по проекту «${shortName(p.title)}»: регион — Южный ФО, уровень — ${lvl ? lvl.dataset.name : 'базовый'}. Выберите оборудование и рассчитайте.`);
   }
 
-  /* ---------- Подписка ---------- */
   function subscribe() {
     const cats = state.ind !== 'all' ? [state.ind] : [...new Set(filtered().map(p => p.ind))].sort((a, b) => INDS.indexOf(a) - INDS.indexOf(b));
     if (!cats.length) { toast('Нет отраслей в выборке — измените фильтры'); return; }
@@ -221,7 +211,6 @@
     toast(`🔔 Вы успешно подписаны на уведомления по новым инвестпроектам в категории ${list}!`);
   }
 
-  /* ---------- CSV (UTF-8 BOM, «;» для Excel) ---------- */
   function exportCsv() {
     const list = filtered();
     if (!list.length) { toast('Нет данных для экспорта — измените фильтры'); return; }
@@ -237,7 +226,7 @@
     toast(`Выгружено проектов: ${list.length}`);
   }
 
-  /* ---------- Сброс ---------- */
+
   function reset() {
     Object.assign(state, { stage: 'all', ind: 'all', big: false, q: '' });
     state.needs.clear();
@@ -247,7 +236,6 @@
     render();
   }
 
-  /* ---------- События ---------- */
   buildChips();
   let qTimer;
   $('inv-q').addEventListener('input', e => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.q = e.target.value; render(); }, 150); });
