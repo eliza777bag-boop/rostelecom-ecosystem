@@ -1,28 +1,3 @@
-"""
-server.py — сервер «Экосистемы коммерческого блока» с двухфакторным входом.
-Только стандартная библиотека Python 3.8+, ничего устанавливать не нужно.
-
-Запуск (из папки проекта):      python backend/server.py
-Потом откройте в браузере:      http://localhost:8000
-
-Как это работает
-  1. Любой запрос к сайту (index.html, css, js, data/radar_data.csv) без входа
-     получает перенаправление на /login (для страниц) или ошибку 401 (для файлов).
-  2. Шаг 1: POST /api/login {username, password}. Пароль сверяется с хешем на сервере.
-     При успехе выдаётся «полусессия» — она ещё НЕ открывает сайт, только даёт право
-     ввести код (5 минут, не больше 5 попыток).
-  3. Шаг 2: POST /api/verify {code}. Код TOTP проверяется на сервере. При успехе
-     выдаётся новая полноценная сессия (новый идентификатор), и сайт открывается.
-  4. Сессия хранится в памяти сервера, в браузере — только случайный идентификатор
-     в cookie с флагами HttpOnly и SameSite=Strict (+ Secure на HTTPS).
-
-Настройки через переменные окружения (все необязательные):
-  HOST=127.0.0.1       PORT=8000        COOKIE_SECURE=1 (включить на HTTPS-хостинге)
-  TRUST_PROXY=1        — брать IP клиента из X-Forwarded-For (только за прокси хостинга)
-  RADAR_CSV_PATH=...   — путь к CSV с компаниями, если он лежит не в data/radar_data.csv
-  SESSION_IDLE_MINUTES=30   SESSION_MAX_HOURS=8
-  AUTH_USERNAME / AUTH_PASSWORD_HASH / AUTH_TOTP_SECRET — учётные данные (см. auth_core.py)
-"""
 import json
 import mimetypes
 import os
@@ -41,21 +16,18 @@ import auth_core  # noqa: E402
 PROJECT_DIR = auth_core.PROJECT_DIR
 BACKEND_DIR = auth_core.BACKEND_DIR
 
-# Что из папки проекта можно отдавать (и только после входа). Папки backend/, private/,
-# backup/, файлы .py/.json/.md в корне — не отдаются никогда.
 ALLOWED_ROOT_FILES = {"index.html"}
 ALLOWED_DIRS = {"css", "js", "assets", "data"}
-# Публичные файлы страницы входа (лежат в backend/, а не в папке сайта)
 LOGIN_FILES = {"/login": ("login.html", "text/html; charset=utf-8"),
                "/login.css": ("login.css", "text/css; charset=utf-8"),
                "/login.js": ("login.js", "text/javascript; charset=utf-8")}
 
 COOKIE_NAME = "ec_session"
-PENDING_TTL = 5 * 60                 # сколько живёт «полусессия» между паролем и кодом
-MAX_CODE_ATTEMPTS = 5                # попыток ввести код в одной полусессии
-FAIL_WINDOW = 15 * 60                # окно подсчёта неудачных попыток
-MAX_FAILS_PER_IP = 10                # неудач с одного IP за окно → временная блокировка
-MAX_FAILS_PER_USER = 5               # неудач для одного логина за окно → временная блокировка
+PENDING_TTL = 5 * 60                 
+MAX_CODE_ATTEMPTS = 5               
+FAIL_WINDOW = 15 * 60                
+MAX_FAILS_PER_IP = 10                
+MAX_FAILS_PER_USER = 5              
 MAX_BODY = 4096
 
 
@@ -75,10 +47,8 @@ class Settings:
             PROJECT_DIR, "data", "radar_data.csv")
 
 
-# ---------------------------------------------------------------- хранилища в памяти
 class SessionStore:
-    """Сессии живут в памяти процесса. Перезапуск сервера = все выходят (это нормально)."""
-
+  
     def __init__(self, settings):
         self.s = settings
         self.lock = threading.Lock()
@@ -164,13 +134,13 @@ class App:
         return auth_core.load_users()  # читаем каждый раз: после setup_2fa.py перезапуск не нужен
 
 
-# ---------------------------------------------------------------- обработчик запросов
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "EcosystemServer"
     sys_version = ""
     app: App = None  # подставляется в make_server()
 
-    # ---------- утилиты
+  
     def client_ip(self):
         if self.app.settings.trust_proxy:
             fwd = self.headers.get("X-Forwarded-For", "")
@@ -235,7 +205,7 @@ class Handler(BaseHTTPRequestHandler):
         # Пишем в консоль только метод/путь/код — без cookie, паролей и кодов
         sys.stderr.write("%s [%s] %s\n" % (self.client_ip(), self.log_date_time_string(), fmt % args))
 
-    # ---------- GET / HEAD
+  
     def do_HEAD(self):
         self.do_GET()
 
