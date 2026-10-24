@@ -247,7 +247,7 @@ fieldset { border: 0; margin-bottom: 18px; }
 .m1-btn-ghost:hover { background: var(--m1-purple-soft); }
 .m1-note { font-size: 11.5px; color: var(--m1-muted); line-height: 1.45; border-top: 1px solid var(--m1-line); padding-top: 12px; }
 
-/* --- Инсайт «белые пятна» --- */
+
 .m1-insight { border-radius: 12px; padding: 14px; background: var(--m1-dark); color: #fff; font-size: 13px; line-height: 1.5; }
 .m1-insight[hidden] { display: none; }
 .m1-insight h4 { font-size: 14px; color: var(--m1-orange); margin-bottom: 6px; }
@@ -259,7 +259,6 @@ fieldset { border: 0; margin-bottom: 18px; }
 .m1-insight li button:focus-visible { outline: 2px solid var(--m1-orange); }
 .m1-insight .m1-rec { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.15); color: #e8dcff; }
 
-/* --- Тёмный контейнер карты --- */
 .m1-main { background: var(--m1-dark); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .m1-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 .m1-kpi { background: var(--m1-dark-2); border-radius: 12px; padding: 10px 12px; color: #fff; min-width: 0; }
@@ -287,7 +286,6 @@ fieldset { border: 0; margin-bottom: 18px; }
 .m1-tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
 .m1 .leaflet-control-layers { border-radius: 10px; }
 
-/* --- Попап --- */
 .m1-popup .leaflet-popup-content-wrapper { border-radius: 12px; }
 .m1-popup .leaflet-popup-content { margin: 12px 14px; font-family: inherit; font-size: 13px; line-height: 1.45; color: var(--m1-ink); min-width: 240px; }
 .m1-pop h4 { font-size: 14px; margin-bottom: 4px; padding-right: 12px; }
@@ -304,7 +302,6 @@ fieldset { border: 0; margin-bottom: 18px; }
 .m1-pop .m1-warn small { display: block; font-weight: 400; color: #6d1a2d; margin-top: 2px; }
 .m1-pop .m1-demo { font-size: 11px; color: var(--m1-muted); margin-top: 8px; }
 
-/* --- «Нет данных»: статус/выручка/динамика отсутствуют в источнике --- */
 .m1-dot.unknown { background: #8e86a3; }
 .m1-kpi.k-unknown b { color: #b9b3c7; }
 .m1-pop .m1-badge.unknown { background: #8e86a3; }
@@ -318,7 +315,6 @@ fieldset { border: 0; margin-bottom: 18px; }
 .m1-data-status code { background: rgba(255,255,255,.12); padding: 0 4px; border-radius: 4px; }
 .m1-data-status[hidden] { display: none; }
 
-/* --- Адаптив --- */
 @media (max-width: 1024px) {
   .m1 { grid-template-columns: 1fr; }
   .m1-side { max-height: none; min-height: 0; }
@@ -329,8 +325,7 @@ fieldset { border: 0; margin-bottom: 18px; }
   .m1-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .m1-map-wrap { min-height: 380px; }
 }
-/* ===================== /МОДУЛЬ 1 ===================== */
-/* ===================== МОДУЛЬ 2 · ИНВЕСТИЦИОННЫЙ НАВИГАТОР ===================== */
+
 .inv {
   --inv-bg: #12121a; --inv-bg2: #1a1a24; --inv-card: #242438;
   --inv-txt: #ffffff; --inv-mute: #a0a0b0; --inv-line: rgba(255,255,255,.08);
@@ -358,7 +353,6 @@ fieldset { border: 0; margin-bottom: 18px; }
   -webkit-mask-composite: xor; mask-composite: exclude;
 }
 
-/* Фильтры */
 .inv-filters { padding: 18px; display: grid; gap: 12px; }
 .inv-search { position: relative; }
 .inv-search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--inv-mute); font-size: 18px; }
@@ -402,14 +396,13 @@ fieldset { border: 0; margin-bottom: 18px; }
 .inv-btn-orange { background: linear-gradient(135deg, #ff6b00, #ff8f3d); box-shadow: 0 6px 18px rgba(255,107,0,.35); }
 .inv-btn-purple { background: linear-gradient(135deg, #7b2cbf, #9d4edd); box-shadow: 0 6px 18px rgba(123,44,191,.4); }
 
-/* KPI */
 .inv-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 14px 0; }
 .inv-kpi { padding: 16px 18px; display: grid; gap: 2px; }
 .inv-kpi span { font-size: 12px; color: var(--inv-mute); text-transform: uppercase; letter-spacing: .05em; }
 .inv-kpi b { font-size: 26px; font-weight: 800; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .inv-kpi small { font-size: 12px; color: var(--inv-mute); }
 .inv-kpi-accent b { background: linear-gradient(90deg, #ff6b00, #ffb27a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-/* Таймлайн */
+
 .inv-tl-wrap { padding: 18px; }
 .inv-tl-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .inv-tl-head h3 { font-size: 16px; font-weight: 700; }
